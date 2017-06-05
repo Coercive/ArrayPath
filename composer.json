@@ -1,0 +1,27 @@
+{
+    "name": "coercive/arraypath",
+    "type": "library",
+    "description": "Coercive Utility ArrayPath",
+    "homepage": "http://coercive.fr",
+    "license": "GNU",
+    "authors": [
+        {
+            "name": "Anthony Moral",
+            "email": "contact@coercive.fr",
+            "homepage": "http://coercive.fr"
+        }
+    ],
+    "require": {
+        "php": ">=7"
+    },
+    "require-dev": {},
+    "autoload": {
+        "psr-4": { "Coercive\\Utility\\ArrayPath\\": "" }
+    },
+    "minimum-stability" : "dev",
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    }
+}
