@@ -11,11 +11,12 @@ composer require coercive/arraypath
 
 Class
 -----
+
 ```php
 use Coercive\Utility\ArrayPath\ArrayPath;
 
 # EXAMPLE
-$aArray = [
+$example_array = [
 	'1' => [
 		'2' => [
 			'3' => [
@@ -26,27 +27,34 @@ $aArray = [
 ];
 
 # INIT OBJECT
-$oArray = ArrayPath::init($aArray);
+$handler = ArrayPath::init($example_array);
 
 # RETRIEVE CONTENT
-$aContent = $oArray->get('1.2.3');
-
-# OPTION : custom separator
-$oArray->setSeparator('@');
-$aContent = $oArray->get('1@2@3');
+$content = $handler->get('1.2.3');
+$content = $handler->get('1.2.3.4', '-- null or not exist --');
 
 # VERIFY PATH EXIST
-if($oArray->has('1.2.3')) {
-	// do something
+if($handler->has('1.2.3')) {
+	// ...
+}
+
+# OR get and check in same time
+$content = $handler->get('1.2.3.4', null, $exist);
+if(!$exist) {
+	// ...
 }
 
 # SET VALUE
-$oArray->set('1.2.3', ['new-content']);
+$handler->set('1.2.3', ['new-content']);
 
 # DELETE PATH
-$oArray->delete('1.2.3');
+$handler->delete('1.2.3');
 
 # RESET
-$oArray->reset();
+$handler->reset();
+
+# OPTION : custom separator
+$handler->setSeparator('@');
+$content = $handler->get('1@2@3');
 
 ```
