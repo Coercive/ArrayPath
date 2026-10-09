@@ -9,6 +9,18 @@ Get
 composer require coercive/arraypath
 ```
 
+Compatible PHP 7.4 → 8.5
+
+Tests
+-----
+
+```
+composer install
+vendor/bin/phpunit
+```
+
+PHPUnit 12 requires PHP 8.3+ to run the tests ; the library itself still runs on PHP 7.4.
+
 Class
 -----
 
@@ -56,5 +68,9 @@ $handler->reset();
 # OPTION : custom separator
 $handler->setSeparator('@');
 $content = $handler->get('1@2@3');
+
+# NESTED ArrayAccess (ArrayObject...) are crossed too
+$handler = ArrayPath::init(['a' => new ArrayObject(['b' => 'value'])]);
+$content = $handler->get('a.b');
 
 ```

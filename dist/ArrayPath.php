@@ -2,7 +2,9 @@
 namespace Coercive\Utility\ArrayPath;
 
 use ArrayAccess;
+use ArrayIterator;
 use ArrayObject;
+use Traversable;
 
 /**
  * Class ArrayPath
@@ -19,7 +21,7 @@ use ArrayObject;
  */
 class ArrayPath extends ArrayObject
 {
-	const DEFAULT_SEPARATOR = '.';
+	public const DEFAULT_SEPARATOR = '.';
 
 	/** @var string */
 	private string $separator = self::DEFAULT_SEPARATOR;
@@ -63,62 +65,96 @@ class ArrayPath extends ArrayObject
 	}
 
 	/**
-	 * @param array $keys
-	 * @param array $array
-	 * @param bool|null $exist
-	 * @return mixed|null
+	 * Array or ArrayAccess object
+	 *
+	 * @param mixed $data
+	 * @return bool
 	 */
-	private function reduce(array $keys, array $array, ?bool &$exist = null)
+	private function isContainer($data): bool
 	{
-		$exist = false;
-		foreach($keys as $key) {
-			array_shift($keys);
-			if(array_key_exists($key, $array)) {
-				$subarray = $array[$key];
-				if($keys) {
-					if(is_array($subarray) || $subarray instanceof ArrayAccess) {
-						return $this->reduce($keys, $subarray, $exist);
-					}
-					return null;
-				}
-				else {
-					$exist = true;
-					return $subarray;
-				}
-			}
-			else {
-				break;
-			}
-		}
-		return null;
+		return is_array($data) || $data instanceof ArrayAccess;
+	}
+
+	/**
+	 * Since PHP 8.0, array_key_exists() no longer accepts objects
+	 *
+	 * @param array|ArrayAccess $data
+	 * @param string|int $key
+	 * @return bool
+	 */
+	private function keyExists($data, $key): bool
+	{
+		return is_array($data) ? array_key_exists($key, $data) : $data->offsetExists($key);
 	}
 
 	/**
 	 * @param array $keys
-	 * @param array $array
+	 * @param array|ArrayAccess $data
+	 * @param bool|null $exist
 	 * @return mixed|null
 	 */
-	private function remove(array $keys, array $array): array
+	private function reduce(array $keys, $data, ?bool &$exist = null)
 	{
+		$exist = false;
+		if(!$keys) {
+			return null;
+		}
 		foreach($keys as $key) {
-			array_shift($keys);
-			if(array_key_exists($key, $array)) {
-				if($keys) {
-					$subarray = $array[$key];
-					if(is_array($subarray) || $subarray instanceof ArrayAccess) {
-						$array[$key] = $this->remove($keys, $subarray);
-					}
-				}
-				else {
-					unset($array[$key]);
-				}
-				return $array;
+			if(!$this->isContainer($data) || !$this->keyExists($data, $key)) {
+				return null;
 			}
-			else {
-				break;
+			$data = $data[$key];
+		}
+		$exist = true;
+		return $data;
+	}
+
+	/**
+	 * @param array $keys
+	 * @param array|ArrayAccess $data
+	 * @return array|ArrayAccess
+	 */
+	private function remove(array $keys, $data)
+	{
+		if(!$keys) {
+			return $data;
+		}
+		$key = array_shift($keys);
+		if(!$this->keyExists($data, $key)) {
+			return $data;
+		}
+		if($keys) {
+			if($this->isContainer($data[$key])) {
+				$data[$key] = $this->remove($keys, $data[$key]);
 			}
 		}
-		return $array;
+		else {
+			unset($data[$key]);
+		}
+		return $data;
+	}
+
+	/**
+	 * Always store a plain array : an ArrayObject wrapping an object exposes its properties, not its offsets
+	 *
+	 * @param mixed $data
+	 * @return array
+	 */
+	static private function toArray($data): array
+	{
+		if(is_array($data)) {
+			return $data;
+		}
+		if($data instanceof ArrayObject || $data instanceof ArrayIterator) {
+			return $data->getArrayCopy();
+		}
+		if($data instanceof Traversable) {
+			return iterator_to_array($data);
+		}
+		if($data instanceof ArrayAccess) {
+			return get_object_vars($data);
+		}
+		return [];
 	}
 
 	/**
@@ -130,7 +166,7 @@ class ArrayPath extends ArrayObject
 	 */
 	static public function init($data = null, string $separator = self::DEFAULT_SEPARATOR): ArrayPath
 	{
-		$instance = is_array($data) || $data instanceof ArrayAccess ? new static($data) : new static;
+		$instance = new static(self::toArray($data));
 		$instance->setSeparator($separator);
 		return $instance;
 	}
@@ -161,7 +197,7 @@ class ArrayPath extends ArrayObject
 	 * GET PATH
 	 *
 	 * @param string $path
-	 * @param null $default [optional]
+	 * @param mixed $default [optional]
 	 * @param bool|null $exist [optional]
 	 * @return mixed
 	 */
